@@ -1,0 +1,28 @@
+embedding:
+  model_name: "dinov2_vits14"  
+  similarity_threshold: 0.88
+  top_k: 10
+  batch_size: 32
+  image_size: 224
+
+color:
+  similarity_threshold: 0.85
+  histogram_bins: 32
+  dominant_colors: 5
+
+confidence:
+  product_weight: 0.70
+  color_weight: 0.30
+
+classification:
+  duplicate_threshold: 0.90
+  review_threshold: 0.70
+
+processing:
+  max_workers: 4
+  use_gpu: true
+  cache_enabled: true
+
+perceptual:
+  phash_threshold: 6
+  dhash_threshold: 6

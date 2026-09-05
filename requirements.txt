@@ -1,0 +1,16 @@
+PySide6
+opencv-python
+Pillow
+ImageHash
+torch
+torchvision
+faiss-cpu
+numpy
+scikit-learn
+pandas
+openpyxl
+PyYAML
+tqdm
+transformers
+python-dotenv
+pyinstaller
