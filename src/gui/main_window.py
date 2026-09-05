@@ -1,5 +1,5 @@
 """
-Main application window.
+Main application window - Simple and clean design.
 """
 
 import logging
@@ -8,17 +8,16 @@ from pathlib import Path
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QLineEdit, QPushButton, QFileDialog, QProgressBar, 
-    QScrollArea, QFrame, QMessageBox, QSplitter, QTabWidget,
-    QTextEdit, QGroupBox, QGridLayout, QSizePolicy
+    QFrame, QMessageBox, QGroupBox, QGridLayout,
+    QSpacerItem, QSizePolicy
 )
 from PySide6.QtCore import Qt, QThread, Signal, QSize
-from PySide6.QtGui import QPixmap, QImage, QFont
-import cv2
-import numpy as np
+from PySide6.QtGui import QPixmap, QFont, QIcon
 from datetime import datetime
 
 from .workers import AnalysisWorker
 from .results_widget import ResultsWidget
+from .styles import AppTheme
 from ..utils import load_config, format_time
 
 logger = logging.getLogger(__name__)
@@ -32,12 +31,15 @@ class MainWindow(QMainWindow):
         self.config = load_config()
         self.worker = None
         self.start_time = None
+        self.current_results = None
+        self.current_processing_time = "00:00:00"
         
         self.init_ui()
+        self.apply_theme()
     
     def init_ui(self):
         """Initialize the user interface."""
-        self.setWindowTitle("Duplicate Product Image Detector")
+        self.setWindowTitle("Duplicate Image Detector")
         self.setMinimumSize(900, 700)
         
         # Central widget
@@ -50,62 +52,66 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(20, 20, 20, 20)
         
         # Title
-        title_label = QLabel("Duplicate Product Image Detector")
-        title_font = QFont()
-        title_font.setPointSize(16)
-        title_font.setBold(True)
-        title_label.setFont(title_font)
-        title_label.setAlignment(Qt.AlignCenter)
+        title_label = QLabel("Duplicate Image Detector")
+        title_label.setObjectName("titleLabel")
         main_layout.addWidget(title_label)
         
+        subtitle_label = QLabel("Product image duplicate detection")
+        subtitle_label.setObjectName("subtitleLabel")
+        main_layout.addWidget(subtitle_label)
+        
+        # Separator line
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        separator.setStyleSheet("color: #D1D5DB;")
+        main_layout.addWidget(separator)
+        
         # Folder selection
+        folder_group = QGroupBox("Folder Selection")
         folder_layout = QHBoxLayout()
-        folder_label = QLabel("Images folder:")
-        folder_label.setMinimumWidth(100)
+        folder_layout.setSpacing(10)
         
         self.folder_input = QLineEdit()
-        self.folder_input.setPlaceholderText("Select a folder containing images...")
+        self.folder_input.setPlaceholderText("Path to folder containing images...")
         
-        self.browse_button = QPushButton("Browse")
+        self.browse_button = QPushButton("Browse...")
+        self.browse_button.setObjectName("secondaryButton")
         self.browse_button.clicked.connect(self.browse_folder)
         
-        folder_layout.addWidget(folder_label)
         folder_layout.addWidget(self.folder_input, 1)
         folder_layout.addWidget(self.browse_button)
         
-        main_layout.addLayout(folder_layout)
+        folder_group.setLayout(folder_layout)
+        main_layout.addWidget(folder_group)
         
-        # Analyze button
-        self.analyze_button = QPushButton("ANALYZE IMAGES")
-        self.analyze_button.setMinimumHeight(50)
-        self.analyze_button.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                font-size: 16px;
-                font-weight: bold;
-                border-radius: 5px;
-                padding: 10px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-            QPushButton:disabled {
-                background-color: #cccccc;
-            }
-        """)
+        # File info
+        self.file_info_label = QLabel("")
+        self.file_info_label.setObjectName("statusInfo")
+        main_layout.addWidget(self.file_info_label)
+        
+        # Action buttons
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
+        
+        self.analyze_button = QPushButton("Analyze Images")
+        self.analyze_button.setObjectName("primaryButton")
         self.analyze_button.clicked.connect(self.start_analysis)
-        main_layout.addWidget(self.analyze_button)
         
-        # Cancel button
         self.cancel_button = QPushButton("Cancel")
+        self.cancel_button.setObjectName("secondaryButton")
         self.cancel_button.setEnabled(False)
         self.cancel_button.clicked.connect(self.cancel_analysis)
-        main_layout.addWidget(self.cancel_button)
+        
+        button_layout.addWidget(self.analyze_button, 1)
+        button_layout.addWidget(self.cancel_button)
+        
+        main_layout.addLayout(button_layout)
         
         # Progress section
-        progress_group = QGroupBox("Progress")
+        self.progress_group = QGroupBox("Progress")
         progress_layout = QVBoxLayout()
+        progress_layout.setSpacing(5)
         
         self.stage_label = QLabel("Ready")
         self.stage_label.setStyleSheet("font-weight: bold;")
@@ -117,13 +123,16 @@ class MainWindow(QMainWindow):
         progress_layout.addWidget(self.progress_bar)
         
         self.status_label = QLabel("")
+        self.status_label.setObjectName("statusInfo")
         progress_layout.addWidget(self.status_label)
         
-        self.device_label = QLabel("Device: Not initialized")
+        self.device_label = QLabel("")
+        self.device_label.setObjectName("statusInfo")
         progress_layout.addWidget(self.device_label)
         
-        progress_group.setLayout(progress_layout)
-        main_layout.addWidget(progress_group)
+        self.progress_group.setLayout(progress_layout)
+        self.progress_group.hide()
+        main_layout.addWidget(self.progress_group)
         
         # Results section
         self.results_widget = ResultsWidget()
@@ -131,17 +140,20 @@ class MainWindow(QMainWindow):
         
         # Export buttons
         export_layout = QHBoxLayout()
-        
-        self.export_csv_button = QPushButton("Export CSV")
-        self.export_csv_button.setEnabled(False)
-        self.export_csv_button.clicked.connect(lambda: self.export_results("csv"))
-        
-        self.export_excel_button = QPushButton("Export Excel")
-        self.export_excel_button.setEnabled(False)
-        self.export_excel_button.clicked.connect(lambda: self.export_results("excel"))
+        export_layout.setSpacing(10)
         
         export_layout.addStretch()
+        
+        self.export_csv_button = QPushButton("Export CSV")
+        self.export_csv_button.setObjectName("secondaryButton")
+        self.export_csv_button.setEnabled(False)
+        self.export_csv_button.clicked.connect(lambda: self.export_results("csv"))
         export_layout.addWidget(self.export_csv_button)
+        
+        self.export_excel_button = QPushButton("Export Excel")
+        self.export_excel_button.setObjectName("secondaryButton")
+        self.export_excel_button.setEnabled(False)
+        self.export_excel_button.clicked.connect(lambda: self.export_results("excel"))
         export_layout.addWidget(self.export_excel_button)
         
         main_layout.addLayout(export_layout)
@@ -152,12 +164,17 @@ class MainWindow(QMainWindow):
         # Initial validation
         self.validate_input()
     
+    def apply_theme(self):
+        """Apply the application theme."""
+        self.setStyleSheet(AppTheme.get_main_stylesheet())
+    
     def browse_folder(self):
         """Open folder selection dialog."""
         folder_path = QFileDialog.getExistingDirectory(
             self,
             "Select Image Folder",
-            os.path.expanduser("~")
+            os.path.expanduser("~"),
+            QFileDialog.ShowDirsOnly
         )
         
         if folder_path:
@@ -169,22 +186,39 @@ class MainWindow(QMainWindow):
         
         if not folder_path:
             self.analyze_button.setEnabled(False)
+            self.file_info_label.setText("")
             return
         
         if not os.path.exists(folder_path):
             self.analyze_button.setEnabled(False)
-            self.status_label.setText("Folder does not exist")
-            self.status_label.setStyleSheet("color: red;")
+            self.file_info_label.setText("Folder does not exist")
+            self.file_info_label.setObjectName("statusError")
+            self.file_info_label.style().polish(self.file_info_label)
             return
         
         if not os.path.isdir(folder_path):
             self.analyze_button.setEnabled(False)
-            self.status_label.setText("Selected path is not a folder")
-            self.status_label.setStyleSheet("color: red;")
+            self.file_info_label.setText("Path is not a folder")
+            self.file_info_label.setObjectName("statusError")
+            self.file_info_label.style().polish(self.file_info_label)
+            return
+        
+        # Count images
+        from ..image_loader import ImageLoader
+        image_loader = ImageLoader()
+        images = image_loader.find_images(folder_path)
+        
+        if not images:
+            self.analyze_button.setEnabled(False)
+            self.file_info_label.setText("No images found in this folder")
+            self.file_info_label.setObjectName("statusError")
+            self.file_info_label.style().polish(self.file_info_label)
             return
         
         self.analyze_button.setEnabled(True)
-        self.status_label.setText("")
+        self.file_info_label.setText(f"{len(images)} images found")
+        self.file_info_label.setObjectName("statusSuccess")
+        self.file_info_label.style().polish(self.file_info_label)
     
     def start_analysis(self):
         """Start the analysis process."""
@@ -202,10 +236,11 @@ class MainWindow(QMainWindow):
         self.export_csv_button.setEnabled(False)
         self.export_excel_button.setEnabled(False)
         
-        # Reset progress
+        # Show progress
+        self.progress_group.show()
         self.progress_bar.setValue(0)
-        self.stage_label.setText("Starting analysis...")
-        self.status_label.setText("Initializing...")
+        self.stage_label.setText("Initializing...")
+        self.status_label.setText("Preparing analysis...")
         
         # Clear previous results
         self.results_widget.clear_results()
@@ -229,14 +264,22 @@ class MainWindow(QMainWindow):
             self.cancel_button.setEnabled(False)
     
     def update_progress(self, percentage: int, stage: str):
-        """Update progress bar and stage label."""
+        """Update progress bar and status."""
         self.progress_bar.setValue(percentage)
-        self.stage_label.setText(stage)
         self.status_label.setText(stage)
     
     def update_stage(self, current: int, total: int):
         """Update stage information."""
-        self.stage_label.setText(f"Stage {current}/{total}")
+        stages = [
+            "Calculating hashes",
+            "Perceptual hashes",
+            "Generating embeddings",
+            "Color analysis",
+            "Creating groups"
+        ]
+        
+        stage_name = stages[min(current - 1, len(stages) - 1)]
+        self.stage_label.setText(f"Stage {current}/{total}: {stage_name}")
     
     def analysis_finished(self, results: dict):
         """Handle analysis completion."""
@@ -259,8 +302,11 @@ class MainWindow(QMainWindow):
         self.results_widget.display_results(results, processing_time)
         
         # Update status
-        self.status_label.setText("Analysis complete!")
-        self.device_label.setText(f"Device: {results.get('device', 'Unknown')}")
+        self.status_label.setText("Analysis complete")
+        self.status_label.setObjectName("statusSuccess")
+        self.status_label.style().polish(self.status_label)
+        
+        self.device_label.setText(f"Device: {results.get('device', 'CPU')}")
         
         # Store results for export
         self.current_results = results
@@ -276,12 +322,15 @@ class MainWindow(QMainWindow):
         
         # Show error
         self.status_label.setText("Analysis failed")
-        self.status_label.setStyleSheet("color: red;")
-        QMessageBox.critical(self, "Analysis Error", error_message)
+        self.status_label.setObjectName("statusError")
+        self.status_label.style().polish(self.status_label)
+        
+        QMessageBox.critical(self, "Error", f"An error occurred:\n{error_message}")
     
     def export_results(self, format_type: str):
         """Export results to CSV or Excel."""
-        if not hasattr(self, 'current_results'):
+        if not self.current_results:
+            QMessageBox.warning(self, "No Results", "Please run an analysis first.")
             return
         
         output_dir = "output"
@@ -292,7 +341,7 @@ class MainWindow(QMainWindow):
         if format_type == "csv":
             file_path = os.path.join(output_dir, f"duplicates_{timestamp}.csv")
             self._export_to_csv(file_path)
-        else:  # excel
+        else:
             file_path = os.path.join(output_dir, f"duplicates_{timestamp}.xlsx")
             self._export_to_excel(file_path)
     
@@ -302,11 +351,7 @@ class MainWindow(QMainWindow):
         report_gen = ReportGenerator()
         report_gen.export_to_csv(self.current_results["groups"], file_path)
         
-        QMessageBox.information(
-            self,
-            "Export Complete",
-            f"Results exported to:\n{file_path}"
-        )
+        QMessageBox.information(self, "Export Successful", f"Results exported to:\n{file_path}")
     
     def _export_to_excel(self, file_path: str):
         """Export results to Excel."""
@@ -325,8 +370,4 @@ class MainWindow(QMainWindow):
         report_gen = ReportGenerator()
         report_gen.export_to_excel(self.current_results["groups"], file_path, summary)
         
-        QMessageBox.information(
-            self,
-            "Export Complete",
-            f"Results exported to:\n{file_path}"
-        )
+        QMessageBox.information(self, "Export Successful", f"Results exported to:\n{file_path}")

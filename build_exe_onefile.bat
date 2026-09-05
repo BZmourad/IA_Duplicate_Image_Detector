@@ -3,17 +3,6 @@ echo ========================================
 echo Building Single-File EXE
 echo ========================================
 
-REM Activate virtual environment if exists
-if exist ".venv\Scripts\activate.bat" (
-    call .venv\Scripts\activate.bat
-)
-
-REM Install required packages
-pip install pyinstaller
-
-REM Convert PNG icon to ICO
-python scripts/convert_icon.py
-
 REM Clean previous build
 if exist "build" rmdir /s /q "build"
 if exist "dist" rmdir /s /q "dist"
