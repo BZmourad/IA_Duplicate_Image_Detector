@@ -1,0 +1,35 @@
+2026-09-05 10:21:34,928 - src.embedding_model - INFO - Using CPU
+2026-09-05 10:21:39,520 - src.embedding_model - INFO - Loading model dinov2_vits14
+2026-09-05 10:22:18,491 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/agent-harnesses "HTTP/1.1 200 OK"
+2026-09-05 10:22:18,647 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/dinov2_vits14/resolve/main/processor_config.json "HTTP/1.1 401 Unauthorized"
+2026-09-05 10:22:18,791 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/dinov2_vits14/resolve/main/processor_config.json "HTTP/1.1 401 Unauthorized"
+2026-09-05 10:22:18,814 - src.embedding_model - WARNING - Could not load from transformers: dinov2_vits14 is not a local folder and is not a valid model identifier listed on 'https://huggingface.co/models'
+If this is a private repository, make sure to pass a token having permission to this repo either by logging in with `hf auth login` or by passing `token=<your_token>`
+2026-09-05 10:22:18,815 - src.embedding_model - INFO - Attempting to load model from torch hub...
+2026-09-05 10:22:22,820 - dinov2 - INFO - using MLP layer as FFN
+2026-09-05 10:23:03,423 - src.embedding_model - INFO - Model loaded from torch hub on cpu
+2026-09-05 10:23:25,439 - src.gui.workers - ERROR - Error in analysis: 'dict' object has no attribute 'mean'
+2026-09-05 10:23:25,466 - src.gui.workers - ERROR - Traceback (most recent call last):
+  File "C:\laragon\www\apps\pp\src\gui\workers.py", line 135, in run
+    embeddings = embedding_model.generate_embeddings(
+        images_array,
+        batch_size=self.config["embedding"]["batch_size"]
+    )
+  File "C:\laragon\www\apps\pp\src\embedding_model.py", line 121, in generate_embeddings
+    embedding = self._generate_torchhub_embedding(batch)
+  File "C:\laragon\www\apps\pp\src\embedding_model.py", line 148, in _generate_torchhub_embedding
+    embeddings = outputs.mean(dim=1)  # Global average pooling
+                 ^^^^^^^^^^^^
+AttributeError: 'dict' object has no attribute 'mean'
+
+2026-09-05 10:30:44,211 - src.embedding_model - INFO - Using CPU
+2026-09-05 10:30:56,800 - src.embedding_model - INFO - Loading model dinov2_vits14
+2026-09-05 10:30:56,802 - src.embedding_model - INFO - Loading from torch hub: dinov2_vits14
+2026-09-05 10:30:57,260 - dinov2 - INFO - using MLP layer as FFN
+2026-09-05 10:30:59,949 - src.embedding_model - INFO - Model loaded from torch hub on cpu
+2026-09-05 10:32:58,134 - src.cache - INFO - Cache saved: 400 items
+2026-09-05 10:44:33,116 - src.report - INFO - Excel exported to output\duplicates_20260905_104429.xlsx
+2026-09-05 11:18:10,628 - __main__ - INFO - Application icon loaded: C:\laragon\www\apps\pp\assets/logo.png
+2026-09-05 11:36:22,706 - __main__ - INFO - Application icon loaded: C:\laragon\www\apps\IA_Duplicate_Image_Detector\assets/logo.png
+2026-09-05 11:46:53,888 - __main__ - INFO - Application icon loaded: C:\laragon\www\apps\IA_Duplicate_Image_Detector\assets/logo.png
+2026-09-05 11:52:57,749 - __main__ - INFO - Application icon loaded: C:\laragon\www\apps\IA_Duplicate_Image_Detector\assets/logo.png

@@ -36,16 +36,13 @@ Thumbs.db
 *.dylib
 *.so
 *.manifest
-*.spec
 build/
 dist/
 release/
 
 # Application generated files
 cache/
-logs/
 output/
-*.log
 
 # Model files (large files)
 models/
@@ -109,21 +106,6 @@ config.production.yaml
 *.xls
 *.json.bak
 
-# Specific application data
-test_dataset/
-sample_images/
-*.jpeg
-*.jpg
-*.png
-*.webp
-*.bmp
-*.tiff
-*.tif
-
-# Exception: Keep example images if needed
-# Uncomment if you want to keep example images
-# !examples/*.jpg
-# !examples/*.png
 
 # Large binary files
 *.pkl
