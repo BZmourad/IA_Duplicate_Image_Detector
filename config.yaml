@@ -1,5 +1,5 @@
 embedding:
-  model_name: "dinov2_vits14"  
+  model_name: "dinov2_vits14"
   similarity_threshold: 0.88
   top_k: 10
   batch_size: 32

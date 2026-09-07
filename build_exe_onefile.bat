@@ -3,10 +3,6 @@ echo ========================================
 echo Building Single-File EXE
 echo ========================================
 
-REM Clean previous build
-if exist "build" rmdir /s /q "build"
-if exist "dist" rmdir /s /q "dist"
-
 REM Build single-file executable
 pyinstaller --onefile ^
     --windowed ^
